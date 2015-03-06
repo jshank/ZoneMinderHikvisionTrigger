@@ -10,6 +10,6 @@ License: GPL
 Version: 0.1
 Date: Mar 6 2015
 
-Please read the [wiki] for setup instructions.
+Please read the [[wiki]] for setup instructions.
 
 
