@@ -1,5 +1,9 @@
 # ZoneMinderFoscamHDTrigger
-Using Foscam HD inbuilt HW motion detection instead of Zoneminder's SW motion detection
+
+
+I've been benchmarking ZM's software motion detection with the built in Foscam Motion detection in the camera. In general, I've found Foscam's own detection to be much more reliable. This code makes ZM use Foscam HD inbuilt HW motion detection instead of Zoneminder's SW motion detection. This results in lesser false positives, and also significantly reduces system load on the ZM installation. 
+
+As of 0.1, it may have bugs. Please see the Wiki for more details.
 
  A trigger script that uses Foscam HD camera inbuilt motion detection
 to start ZoneMinder recordings. When motion is detected, it records for 20 seconds
