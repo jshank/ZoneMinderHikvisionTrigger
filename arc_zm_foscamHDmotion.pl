@@ -8,8 +8,8 @@
 #
 #  Author: ARC
 #  License: GPL
-#  Version: 0.1
-#  Date: Mar 6 2015
+#  Version: 0.2
+#  Date: Mar 10 2015
 #
 # More details:
 # **** ONLY WORKS FOR FOSCAM HD CAMERAS. VERY EASY TO MAKE IT WORK WITH NON HD FOSCAMS too  ****
@@ -42,13 +42,12 @@
 #
 
 
+
 use LWP::Simple;
 use Socket;
 use ZoneMinder::Logger qw(:all);
 
-# These are dummy IPs, usernames and passwords - please EDIT THEM
-
-$zm_trigger_ip = '192.168.1.13'; #change this to the IP where ZM is running
+$zm_trigger_ip = 'XX.XX.1.13'; #change this to the IP where ZM is running
 $zm_trigger_port = 6802; # this is the default zm_trigger port
 $loop_dur = 2;
 
@@ -56,9 +55,9 @@ $loop_dur = 2;
 	{
 		name=>'Family Room', 		#descriptive name of your monitor. Only used for logging
 		id=>6,				# zoneminder monitor id 	
-		ip=>'192.168.1.100',		# IP of this camera
-		port=>9990,			# port of this camera
-		user=>'user',			# username auth
+		ip=>'XX.XX.1.129',		# IP of this camera
+		port=>20003,			# port of this camera
+		user=>'username',		# username auth
 		password=>'password',		# password auth
 		state=>'off',			# don't mess with this
 		sleep=>3,			# don't mess with this
@@ -67,9 +66,31 @@ $loop_dur = 2;
 	{
 		name=>'Basement',
 		id=>4,
-		ip=>'192.168.1.101',
-		port=>9992,
-		user=>'user',
+		ip=>'XX.XX.1.125',
+		port=>20001,
+		user=>'username',
+		password=>'password',
+		state=>'off',
+		sleep=>3,
+		lasttime=>-1,
+	},
+	{
+		name=>'Garage',
+		id=>9,
+		ip=>'XX.XX.1.33',
+		port=>20005,
+		user=>'username',
+		password=>'password',
+		state=>'off',
+		sleep=>3,
+		lasttime=>-1,
+	},
+	{
+		name=>'Unfinished',
+		id=>5,
+		ip=>'XX.XX.1.17',
+		port=>20000,
+		user=>'username',
 		password=>'password',
 		state=>'off',
 		sleep=>3,
@@ -145,15 +166,15 @@ for $iter (@monitors)
 			else
 			{
 				#print "Success connecting to ZM_TRIGGER\n";
-				my $string_to_write = $iter->{id}."|on|1|External Motion|External Motion";
+				$iter->{dur} = 20;
+				my $string_to_write = $iter->{id}."|on+".$iter->{dur}."|1|External Motion|External Motion";
 				#print "Sending $string_to_write\n";
 				print FD $string_to_write;
 				close FD;
 				$iter->{state} = "on";
-				$iter->{dur} = 20;
 				$iter->{lasttime} = time;
 				#printf "Recording started, doing it for 20s\n";
-				Info( "ARC:Recording $iter->{dur} seconds of video for $iter->{name}. I'll wait for a while  before I poll this again.");
+				Info ("ARC:Sending string: $string_to_write. I'll wait for a while before I poll again");
 			}
 		}
 
