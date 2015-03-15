@@ -8,8 +8,6 @@
 #
 #  Author: ARC
 #  License: GPL
-#  Version: 0.2
-#  Date: Mar 10 2015
 #
 # More details:
 # **** ONLY WORKS FOR FOSCAM HD CAMERAS. VERY EASY TO MAKE IT WORK WITH NON HD FOSCAMS too  ****
@@ -42,25 +40,25 @@
 #
 
 
-
 use LWP::Simple;
 use Socket;
 use ZoneMinder::Logger qw(:all);
 
 $zm_trigger_ip = 'XX.XX.1.13'; #change this to the IP where ZM is running
 $zm_trigger_port = 6802; # this is the default zm_trigger port
-$loop_dur = 2;
+$sql_auth = ""; # change to "-uusername -ppassword" for your DB creds
+$loop_dur = 3;
 
 @monitors = (
 	{
 		name=>'Family Room', 		#descriptive name of your monitor. Only used for logging
-		id=>6,				# zoneminder monitor id 	
+		id=>10,				# zoneminder monitor id 	
 		ip=>'XX.XX.1.129',		# IP of this camera
 		port=>20003,			# port of this camera
-		user=>'username',		# username auth
-		password=>'password',		# password auth
+		user=>'xxxxx',		# username auth
+		password=>'xxxxx',		# password auth
 		state=>'off',			# don't mess with this
-		sleep=>3,			# don't mess with this
+		dur=>3,			# don't mess with this
 		lasttime=>-1,			# dont mess with this
 	},
 	{
@@ -68,10 +66,10 @@ $loop_dur = 2;
 		id=>4,
 		ip=>'XX.XX.1.125',
 		port=>20001,
-		user=>'username',
-		password=>'password',
+		user=>'xxxxx',
+		password=>'xxxxx',
 		state=>'off',
-		sleep=>3,
+		dur=>3,
 		lasttime=>-1,
 	},
 	{
@@ -79,10 +77,10 @@ $loop_dur = 2;
 		id=>9,
 		ip=>'XX.XX.1.33',
 		port=>20005,
-		user=>'username',
-		password=>'password',
+		user=>'xxxxx',
+		password=>'xxxxx',
 		state=>'off',
-		sleep=>3,
+		dur=>3,
 		lasttime=>-1,
 	},
 	{
@@ -90,10 +88,10 @@ $loop_dur = 2;
 		id=>5,
 		ip=>'XX.XX.1.17',
 		port=>20000,
-		user=>'username',
-		password=>'password',
+		user=>'xxxxx',
+		password=>'xxxxx',
 		state=>'off',
-		sleep=>3,
+		dur=>3,
 		lasttime=>-1,
 	},
 );
@@ -143,6 +141,22 @@ for $iter (@monitors)
 			#$iter->{state} = 'off';
 		}
 	}
+
+	$is_nodect=`/usr/bin/mysql -D zm $sql_auth -s -N -e  \"SELECT CONCAT(Enabled,Function) FROM Monitors WHERE Id=$iter->{id};\"`;
+	chomp($is_nodect);
+	if ($is_nodect ne "1Nodect")
+	{
+		$iter->{dur} = 60;
+		$iter->{lasttime} = time;
+		Info("ARC:$iter->{name} is in $is_nodect skipping for $iter->{dur}...");
+		next;
+	}
+	else
+	{
+
+		Debug("ARC:$iter->{name} is in $is_nodect...");
+	}
+
 
 	# This is how Foscam forms its URL for HD cameras. Refer to the CGI document for your camera to change it
 	my($url) = "http://".$iter->{ip}.":".$iter->{port}."/cgi-bin/CGIProxy.fcgi?usr=".$iter->{user}."&pwd=".$iter->{password}."&cmd=getDevState";
