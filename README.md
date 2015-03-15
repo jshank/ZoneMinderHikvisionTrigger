@@ -5,7 +5,6 @@ I've been benchmarking ZM's software motion detection with the built in Foscam M
 
 This results in lesser false positives, and also significantly reduces system load on the ZM installation. 
 
-As of 0.1, it may have bugs. Please see the Wiki for more details.
 
  A trigger script that uses Foscam HD camera inbuilt motion detection
 to start ZoneMinder recordings. When motion is detected, it records for 20 seconds
@@ -13,8 +12,7 @@ to start ZoneMinder recordings. When motion is detected, it records for 20 secon
 
 Author: ARC
 License: GPL
-Version: 0.1
-Date: Mar 6 2015
+
 
 *** Please read the Wiki for setup instructions. ***
 
