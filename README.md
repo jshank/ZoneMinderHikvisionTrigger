@@ -16,9 +16,9 @@ License: GPL
 *** Please read the Wiki for setup instructions. ***
 
 The code consists of 3 files:
-a) arc_zmtrigger.pl --> a modified version of the default zmtrigger.pl (and a .sh file to restart it when it fails)
+a) jshank_zmtrigger.pl --> a modified version of the default zmtrigger.pl (and a .sh file to restart it when it fails)
 
-b) arc_zm_Hikvisionmotion.pl --> the code for detecting motion on Hikvision cameras
+b) jshank_zm_Hikvisionmotion.pl --> the code for detecting motion on Hikvision cameras
 
 
 
