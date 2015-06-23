@@ -159,15 +159,16 @@ for $iter (@monitors)
 
 
 	# This is how Foscam forms its URL for HD cameras. Refer to the CGI document for your camera to change it
-	my($url) = "http://".$iter->{ip}.":".$iter->{port}."/cgi-bin/CGIProxy.fcgi?usr=".$iter->{user}."&pwd=".$iter->{password}."&cmd=getDevState";
+	my($url) = "http://"$iter->{user}.":"..$iter->{password}."@".$iter->{ip}.":".$iter->{port}."/ISAPI/Event/notification/alertStream";
 	my($contents) = get($url);
         
         # Begin sample XML parser code
         my $parser = XML::SAX::ParserFactory->parser(
         Handler => MySAXHandler->new
+        $parser->parse_uri("foo.xml")
   );
   
-  $parser->parse_uri("foo.xml")
+  
 
 	# 0 = motion not enabled, 1 = enabled but not detected, 2 = enabled and detected
 	my ($motionvalue) = $contents =~ /<motionDetectAlarm>(.*)<\/motionDetectAlarm>/;
