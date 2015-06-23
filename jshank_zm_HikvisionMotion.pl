@@ -6,20 +6,18 @@
 #  to start ZoneMinder recordings. When motion is detected, it records for 20seconds
 #  (configurable).
 #
-#  Author: ARC
+#  Author: jshank
 #  License: GPL
 #
 # More details:
-# **** ONLY WORKS FOR FOSCAM HD CAMERAS. VERY EASY TO MAKE IT WORK WITH NON HD FOSCAMS too  ****
-# to change to non HD cameras, just change URL construct of my($url) in line 114 (or close to it)
-# (you will need to refer to your CGI document for it, that Foscam provides)
+# **** ONLY WORKS FOR HIKVISION CAMERAS.  ****
 #
 # Tested on: Ubuntu 14.04 running ZM 1.28.1
-# Tested on: Foscam HD I9831W 
+# Tested on: Hikvision XXXXXXX
 #
 # This is a script to use in conjunction with zoneminder trigger (zmtrigger.pl)
-# This allows you to use Foscam HD camera motion detector instead of ZM's software motion detector
-# I've been benchmarking both, and in general, I've found Foscams own built in HW motion detector
+# This allows you to use Hikvision camera motion detector instead of ZM's software motion detector
+# I've been benchmarking both, and in general, I've found Hikvisions own built in HW motion detector
 # superior to ZM's software (either that, or ZM's motion sensor has too many variables to play with)
 #
 #
@@ -42,6 +40,8 @@
 
 use LWP::Simple;
 use Socket;
+use XML::SAX;
+use MySAXHandler;
 use ZoneMinder::Logger qw(:all);
 
 $zm_trigger_ip = 'XX.XX.1.13'; #change this to the IP where ZM is running
@@ -161,6 +161,13 @@ for $iter (@monitors)
 	# This is how Foscam forms its URL for HD cameras. Refer to the CGI document for your camera to change it
 	my($url) = "http://".$iter->{ip}.":".$iter->{port}."/cgi-bin/CGIProxy.fcgi?usr=".$iter->{user}."&pwd=".$iter->{password}."&cmd=getDevState";
 	my($contents) = get($url);
+        
+        # Begin sample XML parser code
+        my $parser = XML::SAX::ParserFactory->parser(
+        Handler => MySAXHandler->new
+  );
+  
+  $parser->parse_uri("foo.xml")
 
 	# 0 = motion not enabled, 1 = enabled but not detected, 2 = enabled and detected
 	my ($motionvalue) = $contents =~ /<motionDetectAlarm>(.*)<\/motionDetectAlarm>/;
