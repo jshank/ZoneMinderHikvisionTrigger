@@ -1,5 +1,6 @@
 # ZoneMinderHikvisionTrigger
 
+## Not currently working
 
 Based on the excelent ZoneMinderFoscamHDTrigger program. I decided to create a similar script for using the built-in Hikvision VMD (video motion detection) to trigger ZoneMinder via the modified ZMTrigger.pl script.
 
