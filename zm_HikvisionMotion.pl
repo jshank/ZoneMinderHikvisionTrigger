@@ -40,7 +40,7 @@
 
 use LWP::Simple;
 use Socket;
-use XML::SAX;
+use XML::Parser::PerlSAX;
 use MySAXHandler;
 use ZoneMinder::Logger qw(:all);
 
@@ -122,7 +122,6 @@ for $iter (@monitors)
 	#print "\n";
 	#print $iter->{name},"\n";
 	#print "=============================\n";
-
 	if ($iter->{lasttime} != -1 )
 	{
 		# we are recording and counting down
@@ -158,14 +157,17 @@ for $iter (@monitors)
 	}
 
 
-	# This is how Foscam forms its URL for HD cameras. Refer to the CGI document for your camera to change it
+	# This is the URL that streams alerts such as motion detection. Documentation at http://goo.gl/S38ZQq
 	my($url) = "http://"$iter->{user}.":"..$iter->{password}."@".$iter->{ip}.":".$iter->{port}."/ISAPI/Event/notification/alertStream";
-	my($contents) = get($url);
         
-        # Begin sample XML parser code
-        my $parser = XML::SAX::ParserFactory->parser(
-        Handler => MySAXHandler->new
-        $parser->parse_uri("foo.xml")
+       #start an instance of SAX parser for each monitor
+	my $handler = SAXAlertStreamHandler->new();
+	my $parser = XML::Parser::PerlSAX->new(Handler => $handler);
+	
+	my %parser_args = (Source => {SystemId => $url});
+	$parser->parse(%parser_args);
+	exit;
+	
   );
   
   
@@ -242,3 +244,62 @@ for $iter (@monitors)
 }
 sleep $loop_dur;
 } #while
+
+# begin the in-line package from http://www.xml.com/pub/a/2001/02/14/perlsax.html
+package SAXMailHandler;
+use strict;
+use Mail::Sendmail;
+
+my (%mail_args, $current_element, $message_count, $sent_count);
+
+sub new {
+    my $type = shift;
+    return bless {}, $type;
+}
+
+sub start_element {
+    my ($self, $element) = @_;
+
+    if ($element->{Name} eq 'message') {
+        %mail_args = ();
+        $message_count++;
+    }
+    elsif ($element->{Name} eq 'body') {
+        $current_element = 'message';
+    }
+    else {
+        $current_element = $element->{Name};
+    }
+}
+
+sub characters {
+    my ($self, $characters) = @_;
+    my $text = $characters->{Data};
+    unless ($current_element eq 'message') {
+        $text =~ s/^\s*//;
+        $text =~ s/\s*$//;
+    }
+    $mail_args{$current_element} .= $text if $text;
+}
+
+sub end_element {
+    my ($self, $element) = @_;
+    if ($element->{Name} eq 'message')  {
+        Mail::Sendmail::sendmail(%mail_args) or 
+           warn "Mail Error: $Mail::Sendmail::error";
+        $sent_count++ unless $Mail::Sendmail::error;
+    }
+
+}
+
+sub start_document {
+    my ($self) = @_;
+    print "Starting SAX Mailer\n";
+}
+
+sub end_document {
+    my ($self) = @_;
+    print "SAX Mailer Finished\n$sent_count of $message_count message(s) sent\n";
+}
+
+1; #Ye Olde 'Return True' for the in-line package...
