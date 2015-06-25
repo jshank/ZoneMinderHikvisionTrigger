@@ -2,9 +2,8 @@
 
 #---------------------------------------------------------------------------------------------
 #
-#  A trigger script that uses Foscam HD camera inbuilt motion detection
-#  to start ZoneMinder recordings. When motion is detected, it records for 20seconds
-#  (configurable).
+#  A trigger script that uses Hikvision camera inbuilt motion detection
+#  to start ZoneMinder recordings. When motion is detected, it records until motion stops.
 #
 #  Author: jshank
 #  License: GPL
