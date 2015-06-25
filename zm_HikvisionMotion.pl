@@ -156,7 +156,7 @@ for $iter (@monitors)
 		Debug("ARC:$iter->{name} is in $is_nodect...");
 	}
 
-
+	
 	# This is the URL that streams alerts such as motion detection. Documentation at http://goo.gl/S38ZQq
 	my($url) = "http://"$iter->{user}.":"..$iter->{password}."@".$iter->{ip}.":".$iter->{port}."/ISAPI/Event/notification/alertStream";
         
@@ -169,7 +169,7 @@ for $iter (@monitors)
 	exit;
 	
   );
-  
+  =for comment
   
 
 	# 0 = motion not enabled, 1 = enabled but not detected, 2 = enabled and detected
@@ -240,17 +240,33 @@ for $iter (@monitors)
 	{
 		Debug("Motion is NOT ENABLED for ".$iter->{name});
 	}
+=cut
 	
 }
 sleep $loop_dur;
 } #while
 
+=for comment
+<EventNotificationAlert version="1.0" xmlns="http://www.hikvision.com/ver10/XMLSchema">
+<ipAddress>10.1.10.23</ipAddress>
+<portNo>80</portNo>
+<protocol>HTTP</protocol>
+<macAddress>c4:2f:90:27:19:e2</macAddress>
+<channelID>1</channelID>
+<dateTime>2015-06-24T19:37:22--8:00</dateTime>
+<activePostCount>1</activePostCount>
+<eventType>VMD</eventType>
+<eventState>active</eventState>
+<eventDescription>Motion alarm</eventDescription>
+<DetectionRegionList>
+</DetectionRegionList>
+</EventNotificationAlert>
+=cut
 # begin the in-line package from http://www.xml.com/pub/a/2001/02/14/perlsax.html
-package SAXMailHandler;
+package SAXAlertStreamHandler;
 use strict;
-use Mail::Sendmail;
 
-my (%mail_args, $current_element, $message_count, $sent_count);
+my ($current_element, $vmdActive, $ipAddress);
 
 sub new {
     my $type = shift;
@@ -259,47 +275,37 @@ sub new {
 
 sub start_element {
     my ($self, $element) = @_;
-
-    if ($element->{Name} eq 'message') {
-        %mail_args = ();
-        $message_count++;
+	# We found an eventType element
+    if ($element->{Name} eq 'eventType') {
+        $current_element = 'event';
     }
-    elsif ($element->{Name} eq 'body') {
-        $current_element = 'message';
-    }
-    else {
-        $current_element = $element->{Name};
+    elsif ($element->{Name} eq 'ipAddress') {
+        $current_element = 'ipAddress';
     }
 }
 
 sub characters {
     my ($self, $characters) = @_;
     my $text = $characters->{Data};
-    unless ($current_element eq 'message') {
-        $text =~ s/^\s*//;
-        $text =~ s/\s*$//;
+    if ($current_element eq 'event') {
+       if ($text eq "VMD") {
+        	#We found a video motion detection event
+        	if ($vmdActive == 0) {
+        		print "Motion event on ".$ipAddress." STARTED\n";
+        	}
+        	$vmdActive = 1;
+        }
+        elsif ($text eq 'videoloss') {
+        	#Motion event has ended, we're back to videoloss SPAM
+        	if ($vmdActive == 1) {
+        		print "Motion event on ".$ipAddress." has ended\n";
+        	}
+        	$vmdActive = 0;
     }
-    $mail_args{$current_element} .= $text if $text;
-}
-
-sub end_element {
-    my ($self, $element) = @_;
-    if ($element->{Name} eq 'message')  {
-        Mail::Sendmail::sendmail(%mail_args) or 
-           warn "Mail Error: $Mail::Sendmail::error";
-        $sent_count++ unless $Mail::Sendmail::error;
+    elseif ($current_element eq 'ipAddress') {
+    	$ipAddress = $text;
+    	}
     }
-
-}
-
-sub start_document {
-    my ($self) = @_;
-    print "Starting SAX Mailer\n";
-}
-
-sub end_document {
-    my ($self) = @_;
-    print "SAX Mailer Finished\n$sent_count of $message_count message(s) sent\n";
 }
 
 1; #Ye Olde 'Return True' for the in-line package...
