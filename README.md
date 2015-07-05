@@ -4,8 +4,7 @@ Based on the excelent ZoneMinderFoscamHDTrigger program. I decided to create a s
 
 
  A trigger script that uses Hikvision camera inbuilt motion detection
-to start ZoneMinder recordings. When motion is detected, it records for 20 seconds
-(configurable).
+to start ZoneMinder recordings. Records for as long as motion is detected.
 
 Author: Jim Shank (Heavily borrowed from ARC)
 License: GPL
