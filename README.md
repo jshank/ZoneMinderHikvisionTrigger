@@ -1,7 +1,5 @@
 # ZoneMinderHikvisionTrigger
 
-## Not currently working
-
 Based on the excelent ZoneMinderFoscamHDTrigger program. I decided to create a similar script for using the built-in Hikvision VMD (video motion detection) to trigger ZoneMinder via the modified ZMTrigger.pl script.
 
 
@@ -21,4 +19,7 @@ a) jshank_zmtrigger.pl --> a modified version of the default zmtrigger.pl (and a
 b) jshank_zm_Hikvisionmotion.pl --> the code for detecting motion on Hikvision cameras
 
 
+You will need the following Perl modules
+YAML::XS - sudo perl -MCPAN -e 'install YAML::XS'
+XML::Twig - sudo perl -MCPAN -e 'install XML::Twig'
 
