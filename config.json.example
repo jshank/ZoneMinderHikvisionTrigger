@@ -1,0 +1,22 @@
+{
+    "zm_trigger_ip" : "10.1.10.1",
+    "zm_trigger_port" : 6802,
+    "sql_credentials" : {
+        "username" : "root",
+        "password" : "password",
+    },
+    "monitors" : {
+	"10.1.10.2" : {
+            "name" : "backyard",
+            "monitorId" : 1,
+            "username" : "admin",
+            "password" : "password"
+        },
+        "10.1.10.3" : {
+            "name" : "north-gate",
+            "monitorId" : 2, 
+            "username" : "admin",
+            "password" : "password"
+	},
+    }
+}
