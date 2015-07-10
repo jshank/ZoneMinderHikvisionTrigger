@@ -22,3 +22,4 @@ You will need the following Perl modules
 YAML::XS - sudo perl -MCPAN -e 'install YAML::XS'
 XML::Twig - sudo perl -MCPAN -e 'install XML::Twig'
 
+Camera user will need rights to "Remote: Notify Surveillance Center / Trigger Alarm Output"
