@@ -68,25 +68,27 @@ foreach my $monitor ($config->get("monitors")) {
 		 }
 	}
 };
+EV::loop;
 
 
 
 sub StartMonitor {
 	my ( $monitorIp, $monitorDetails) = @_;
 	my $alertStreamUrl = "http://".$monitorDetails->{ 'username' }.":".$monitorDetails->{ 'password' }."@".$monitorIp."/Event/notification/alertStream";
+	return async {
 	#print "Monitor IP: ".$monitorIp."\n";
-	print "Starting monitor: ".$alertStreamUrl."\n";
-	my $browser = LWP::UserAgent->new();
-	MultipartFilter->hookInto(
-		$browser,
-    		onDocument => sub {
-        		my $part=shift;
-        		$twig->parse($part->content());
-    		}
-	);
+		print "Starting monitor: ".$alertStreamUrl."\n";
+		my $browser = LWP::UserAgent->new();
+		MultipartFilter->hookInto(
+			$browser,
+			onDocument => sub {
+				my $part=shift;
+				$twig->parse($part->content());
+			}
+		);
 
-	my $response = $browser->get($alertStreamUrl);
-	print Dumper($response);
+		my $response = $browser->get($alertStreamUrl);
+	};
 };
 
 =item AlertStreamHandler()
@@ -100,17 +102,19 @@ sub AlertStreamHandler {
     my ( $twig, $eventAlert ) = @_;
     my $ip        = $eventAlert->first_child('ipAddress')->text;
     my $eventType = $eventAlert->first_child('eventType')->text;
-    my $eventStartTime;
+    my $eventStartTime = 0;
+    my $monitorConfig =  $config->get("monitors/".$ip);
+    my $lastEvent = $monitorConfig->{ 'lastevent' };
     unless ($eventType eq $lastEvent) {
-        $lastEvent = $eventType;
+        $config->set("monitors/".$ip."/lastevent", $eventType);
 	my $timeStamp = $eventAlert->first_child('dateTime')->text;
 	if ($eventType eq "videoloss") {
 		my $diff = time - $eventStartTime;
-		print "Motion event ended after ".$diff." seconds\n";
-		zm_trigger(9,"off");
+		#print "Motion event ended after ".$diff." seconds\n";
+		zm_trigger($monitorConfig->{'monitorId'},"off");
 	} 
 	elsif ($eventType eq "VMD") {
-		print "MOTION DETECTED at ".time."\n";
+		#print "MOTION DETECTED at ".time."\n";
 		$eventStartTime = time;
 		zm_trigger(9,"on");
 	}
