@@ -48,7 +48,6 @@ use Coro::LWP;
 use EV;
 
 my $config = Config::JSON->new('config.json');
-my $lastEvent = "videoloss";
 
 # Create a Twig handler that will parse out the details of the event 
 my $twig =
