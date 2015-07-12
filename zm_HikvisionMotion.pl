@@ -14,6 +14,7 @@ More details:
 
 Tested on: Ubuntu 14.04 running ZM 1.28.1
 Tested on: Hikvision DS-2CD2332-I
+		     DS-2CD2032-I
 
 This is a script to use in conjunction with zoneminder trigger (zmtrigger.pl)
 This allows you to use Hikvision camera motion detector instead of ZM's software motion detector
@@ -49,23 +50,26 @@ use Coro::LWP;
 use EV;
 
 my $config = Config::JSON->new('config.json');
-
 # Create a Twig handler that will parse out the details of the event
 my $twig =
   new XML::Twig(
     twig_handlers => { EventNotificationAlert => \&AlertStreamHandler } );
 
+
 # Create an LWP instance that will open a connection to the camera and
 # read the alertStream via MultipartFilter and hand off our XML to AlertStreamHandler
 # This will automatically seperate the stream into parts per
 # http://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.2
-#$browser->credentials($alertStreamHost.":".$alertStreamPort, '', $alertStreamUsername=>$alertStreamPassword);
-foreach my $monitor ( $config->get("monitors") ) {
-    foreach my $monitorvalues ($monitor) {
-        while ( my ( $ipAddress, $details ) = each $monitorvalues ) {
 
-   #Key is now the ipAddress of each monitor, value is a hash of the attributes.
-            StartMonitor( $ipAddress, $details );
+# Create an in-memory hash to store cameras and details
+my %monitors;
+
+for my $monitor ( $config->get("monitors") ) {
+    for my $monitorvalues ($monitor) {
+        while ( my ( $ipAddress, $details ) = each $monitorvalues ) {
+	    $monitors{$ipAddress} = $details;
+	    $monitors{$ipAddress}{lastevent} = 'videoloss';
+            StartMonitor( $ipAddress, $monitors{$ipAddress} );
         }
     }
 }
@@ -81,8 +85,8 @@ sub StartMonitor {
       . "/Event/notification/alertStream";
     return async {
 
-        #print "Monitor IP: ".$monitorIp."\n";
-        print "Starting monitor: " . $alertStreamUrl . "\n";
+        print "Starting monitor: $alertStreamUrl\n";
+	Info ("ZM:HVT :Starting monitor $alertStreamUrl\n");
         my $browser = LWP::UserAgent->new();
         MultipartFilter->hookInto(
             $browser,
@@ -93,6 +97,7 @@ sub StartMonitor {
         );
 
         my $response = $browser->get($alertStreamUrl);
+	print "Unable to connect to camera at $monitorIp\n" unless defined $response;
     };
 }
 
@@ -108,28 +113,21 @@ sub AlertStreamHandler {
     my $ip             = $eventAlert->first_child('ipAddress')->text;
     my $eventType      = $eventAlert->first_child('eventType')->text;
     my $eventStartTime = 0;
-    my $monitorConfig  = $config->get( "monitors/" . $ip );
-    my $lastEvent      = $monitorConfig->{'lastevent'};
+    my $monitorConfig  = $monitors{$ip}; #$config->get( "monitors/" . $ip );
+    my $lastEvent      = $monitorConfig->{lastevent}; 
     unless ( $eventType eq $lastEvent ) {
-        $config->set( "monitors/" . $ip . "/lastevent", $eventType );
+	$config->set( "monitors/$ip/lastevent", $eventType );
         my $timeStamp = $eventAlert->first_child('dateTime')->text;
         if ( $eventType eq "videoloss" ) {
             my $diff = time - $eventStartTime;
-
-            #print "Motion event ended after ".$diff." seconds\n";
-            zm_trigger( $monitorConfig->{'monitorId'}, "off" );
+            zm_trigger( $monitorConfig->{monitorId}, "off" );
         }
         elsif ( $eventType eq "VMD" ) {
 
-            #print "MOTION DETECTED at ".time."\n";
             $eventStartTime = time;
-            zm_trigger( 9, "on" );
+            zm_trigger( $monitorConfig->{monitorId}, "on" );
         }
     }
-
-    #print "IP: " . $ip . "\n";
-    #print "Event: " . $eventType . "\n";
-
 }
 
 =for comment
@@ -165,20 +163,18 @@ sub zm_trigger {
 
         #print "Error connecting to ZM_TRIGGER\n";
         Info(
-"ARC:Error connecting to ZM_TRIGGER at $zm_trigger_ip:$zm_trigger_port"
+"ZM:HVT: Error connecting to ZM_TRIGGER at $zm_trigger_ip:$zm_trigger_port"
         );
     }
     else {
+	Info ("ZM:HVT: Success connecting to ZM_TRIGGER");
         print "Success connecting to ZM_TRIGGER\n";
         my $string_to_write =
             $monitorId . "|"
           . $recordState
           . "|1|External Motion|External Motion";
         print "Sending $string_to_write\n";
-
-#$sock->send($string_to_write);
-#$sock->close();
-#Info ("ARC:Sending string: $string_to_write. I'll wait for a while before I poll again");
+	Info ("ZM:HVT: Sending string: $string_to_write.");
     }
 
 }
