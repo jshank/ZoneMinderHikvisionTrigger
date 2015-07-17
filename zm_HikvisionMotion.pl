@@ -69,6 +69,7 @@ for my $monitor ( $config->get("monitors") ) {
         while ( my ( $ipAddress, $details ) = each $monitorvalues ) {
 	    $monitors{$ipAddress} = $details;
 	    $monitors{$ipAddress}{lastevent} = 'videoloss';
+	    $monitors{$ipAddress}{recording} = 0;
             StartMonitor( $ipAddress, $monitors{$ipAddress} );
         }
     }
@@ -85,7 +86,7 @@ sub StartMonitor {
       . "/Event/notification/alertStream";
     return async {
 
-        print "Starting monitor: $alertStreamUrl\n";
+        Info ("Starting monitor: $alertStreamUrl\n");
 	Info ("ZM:HVT :Starting monitor $alertStreamUrl\n");
         my $browser = LWP::UserAgent->new();
         MultipartFilter->hookInto(
@@ -97,7 +98,7 @@ sub StartMonitor {
         );
 
         my $response = $browser->get($alertStreamUrl);
-	print "Unable to connect to camera at $monitorIp\n" unless defined $response;
+	Error ("Unable to connect to camera at $monitorIp\n") unless defined $response;
     };
 }
 
@@ -112,21 +113,30 @@ sub AlertStreamHandler {
     my ( $twig, $eventAlert ) = @_;
     my $ip             = $eventAlert->first_child('ipAddress')->text;
     my $eventType      = $eventAlert->first_child('eventType')->text;
-    my $eventStartTime = 0;
     my $monitorConfig  = $monitors{$ip}; #$config->get( "monitors/" . $ip );
     my $lastEvent      = $monitorConfig->{lastevent}; 
+    my $delayBeforeRecord = $monitorConfig->{delayBeforeRecord};
     unless ( $eventType eq $lastEvent ) {
-	$config->set( "monitors/$ip/lastevent", $eventType );
-        my $timeStamp = $eventAlert->first_child('dateTime')->text;
+	$monitorConfig->{lastevent} = $eventType;
         if ( $eventType eq "videoloss" ) {
-            my $diff = time - $eventStartTime;
-            zm_trigger( $monitorConfig->{monitorId}, "off" );
-        }
+	    if ($monitorConfig->{recording} ) {
+            	zm_trigger( $monitorConfig->{monitorId}, "off" );
+		$monitorConfig->{recording} = 0;
+            }
+	}
         elsif ( $eventType eq "VMD" ) {
-
-            $eventStartTime = time;
-            zm_trigger( $monitorConfig->{monitorId}, "on" );
+	    $monitorConfig->{eventBeginTime} = time;
+	    Debug ("Waiting to record $delayBeforeRecord seconds\n");
+	    if ($delayBeforeRecord == 0) {
+            	zm_trigger( $monitorConfig->{monitorId}, "on" );
+	    }	
         }
+    }
+    elsif ( $eventType eq "VMD" && $monitorConfig->{recording} == 0) {
+	if (time - $monitorConfig->{eventBeginTime} >= $delayBeforeRecord) {
+		$monitorConfig->{recording} = 1;
+		zm_trigger( $monitorConfig->{monitorId}, "on" );
+	}
     }
 }
 
@@ -160,8 +170,6 @@ sub zm_trigger {
     );
 
     unless ($sock) {
-
-        #print "Error connecting to ZM_TRIGGER\n";
         Info(
 "ZM:HVT: Error connecting to ZM_TRIGGER at $zm_trigger_ip:$zm_trigger_port"
         );
@@ -176,5 +184,3 @@ sub zm_trigger {
         print "Sending $string_to_write\n";
 	Info ("ZM:HVT: Sending string: $string_to_write.");
     }
-
-}
