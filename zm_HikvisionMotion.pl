@@ -184,3 +184,4 @@ sub zm_trigger {
         print "Sending $string_to_write\n";
 	Info ("ZM:HVT: Sending string: $string_to_write.");
     }
+}
